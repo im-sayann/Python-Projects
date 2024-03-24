@@ -1,0 +1,50 @@
+import cv2
+
+thres = 0.6 #Threshold to detect object
+
+# cap = cv2.imread('Boy.jpg')
+cap = cv2.VideoCapture(0)
+# cap.set(3, 640)
+# cap.set(4, 480)
+
+
+classNames = []
+
+classFile = 'coco.names.txt'
+with open(classFile, 'rt')as f:
+    classNames = f.read().rstrip('\n').split("\n")
+print(classNames)
+
+configPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt.txt'
+weightsPath = 'frozen_inference_graph.pb'
+
+net = cv2.dnn_DetectionModel(weightsPath, configPath)
+net.setInputSize(320,320)
+net.setInputScale(1.0/127.5)
+net.setInputMean((127.5, 127.5, 127.5))
+net.setInputSwapRB(True)
+
+
+while True:
+    success, img = cap.read()
+    classIds, confs, bbox = net.detect(img, confThreshold=thres)
+    print(classIds,bbox)
+
+    if len(classIds) != 0:
+        for classId, confidence,box in zip(classIds.flatten(),confs.flatten(),bbox):
+            cv2.rectangle(img,box,color=(0,255,0),thickness=2)
+            cv2.putText(img,classNames[classId-1].upper(),(box[0]+10,box[1]+30),
+                        cv2.FONT_HERSHEY_DUPLEX,1,(255,0,0),2)
+
+            cv2.putText(img, str(round(confidence*100,1)), (box[0]+200, box[1]+30),
+                        cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+
+
+
+
+    cv2.imshow("Output", img)
+    key = cv2.waitKey(1)
+
+    # Stop if Q key is pressed
+    if key == 81 or key == 113:
+        break
